@@ -1,83 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../config/Firebase";
 
 const AddJob = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    id: Date.now().toString(),  
-    type: '',  
-    description: '',  
-    location: '',  
-    salary: '',  
-    company: {
-      name: '',  
-      description: '',  
-      contactEmail: '',  
-      contactPhone: '',  
-    },
+    type: "",
+    title: "",
+    description: "",
+    location: "",
+    salary: "",
+    C_name: "",
+    C_description: "",
+    C_contactEmail: "",
+    C_contactPhone: "",
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-  
-    // Handle nested fields for the company object
-    if (['name', 'contactEmail', 'contactPhone'].includes(name)) {
-      setFormData({
-        ...formData,
-        company: {
-          ...formData.company,
-          [name]: value,
-        },
-      });
-    } else if (name === 'description' && e.target.id === 'company_description') {
-      // Handle the company description field
-      setFormData({
-        ...formData,
-        company: {
-          ...formData.company,
-          description: value,
-        },
-      });
-    } else {
-      // Handle all other fields (including job description)
-      setFormData({ ...formData, [name]: value });
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Format the data to match the required structure
-    const formattedData = {
-      id: Date.now().toString(), // Generate a unique ID
-      title: formData.title,
-      type: formData.type,
-      description: formData.description,
-      location: formData.location,
-      salary: formData.salary,
-      company: {
-        name: formData.company.name,
-        description: formData.company.description,
-        contactEmail: formData.company.contactEmail,
-        contactPhone: formData.company.contactPhone,
-      },
-    };
-
-    // Send the formatted data to the backend
-    fetch('/api/jobs', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formattedData),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log('Job added successfully:', data);
-        alert('Job added successfully!');
-      })
-      .catch((error) => {
-        console.error('Error adding job:', error);
-        alert('Failed to add job.');
-      });
+    try {
+      await addDoc(collection(db, "jobs"), formData); // Add job to Firestore
+      alert("Job added successfully!");
+      navigate("/jobs"); // Redirect to jobs page
+    } catch (error) {
+      console.error("Error adding job:", error);
+      alert("Failed to add job.");
+    }
   };
 
   return (
@@ -129,19 +87,19 @@ const AddJob = () => {
               {/* Job Description */}
               <div className="mb-4">
                 <label htmlFor="description" className="block text-gray-700 font-bold mb-2">
-                    Job Description
+                  Job Description
                 </label>
                 <textarea
-                    id="description"
-                    name="description"
-                    className="border rounded w-full py-2 px-3"
-                    rows="4"
-                    placeholder="Add any job duties, expectations, requirements, etc."
-                    required
-                    value={formData.description}
-                    onChange={handleChange}
+                  id="description"
+                  name="description"
+                  className="border rounded w-full py-2 px-3"
+                  rows="4"
+                  placeholder="Add any job duties, expectations, requirements, etc."
+                  required
+                  value={formData.description}
+                  onChange={handleChange}
                 ></textarea>
-                </div>
+              </div>
 
               {/* Salary */}
               <div className="mb-4">
@@ -192,65 +150,65 @@ const AddJob = () => {
 
               {/* Company Name */}
               <div className="mb-4">
-                <label htmlFor="company" className="block text-gray-700 font-bold mb-2">
+                <label htmlFor="C_name" className="block text-gray-700 font-bold mb-2">
                   Company Name
                 </label>
                 <input
                   type="text"
-                  id="company"
-                  name="name"
+                  id="C_name"
+                  name="C_name"
                   className="border rounded w-full py-2 px-3"
                   placeholder="Company Name"
-                  value={formData.company.name}
+                  value={formData.C_name}
                   onChange={handleChange}
                 />
               </div>
 
               {/* Company Description */}
-                <div className="mb-4">
-                <label htmlFor="company_description" className="block text-gray-700 font-bold mb-2">
-                    Company Description
+              <div className="mb-4">
+                <label htmlFor="C_description" className="block text-gray-700 font-bold mb-2">
+                  Company Description
                 </label>
                 <textarea
-                    id="company_description"
-                    name="description"
-                    className="border rounded w-full py-2 px-3"
-                    rows="4"
-                    placeholder="What does your company do?"
-                    value={formData.company.description}
-                    onChange={handleChange}
+                  id="C_description"
+                  name="C_description"
+                  className="border rounded w-full py-2 px-3"
+                  rows="4"
+                  placeholder="What does your company do?"
+                  value={formData.C_description}
+                  onChange={handleChange}
                 ></textarea>
-                </div>
+              </div>
 
               {/* Contact Email */}
               <div className="mb-4">
-                <label htmlFor="contact_email" className="block text-gray-700 font-bold mb-2">
+                <label htmlFor="C_contactEmail" className="block text-gray-700 font-bold mb-2">
                   Contact Email
                 </label>
                 <input
                   type="email"
-                  id="contact_email"
-                  name="contactEmail"
+                  id="C_contactEmail"
+                  name="C_contactEmail"
                   className="border rounded w-full py-2 px-3"
                   placeholder="Email address for applicants"
                   required
-                  value={formData.company.contactEmail}
+                  value={formData.C_contactEmail}
                   onChange={handleChange}
                 />
               </div>
 
               {/* Contact Phone */}
               <div className="mb-4">
-                <label htmlFor="contact_phone" className="block text-gray-700 font-bold mb-2">
+                <label htmlFor="C_contactPhone" className="block text-gray-700 font-bold mb-2">
                   Contact Phone
                 </label>
                 <input
                   type="tel"
-                  id="contact_phone"
-                  name="contactPhone"
+                  id="C_contactPhone"
+                  name="C_contactPhone"
                   className="border rounded w-full py-2 px-3"
                   placeholder="Optional phone for applicants"
-                  value={formData.company.contactPhone}
+                  value={formData.C_contactPhone}
                   onChange={handleChange}
                 />
               </div>

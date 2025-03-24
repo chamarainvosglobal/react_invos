@@ -1,48 +1,74 @@
-import { Link, useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import Spinner from '../components/Spinner';
-import { FaArrowLeft, FaMapMarker } from 'react-icons/fa';
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import Spinner from "../components/Spinner";
+import { FaArrowLeft, FaMapMarker } from "react-icons/fa";
+import { getDoc, doc, deleteDoc } from "firebase/firestore";
+import { db } from "../config/Firebase";
 
-const Jobs = ({deleteJob}) => {
+const Jobs = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // Get the job ID from the URL
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const onDeleteClick = (jobId) => {
-    const confirmDelete = window.confirm('Are you sure you want to delete this job?');
-
-    if(!confirmDelete) return;
-
-    deleteJob(jobId);
-
-    navigate('/jobs');
-  }
-
+  // Fetch job data from Firestore
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const res = await fetch(`/api/jobs/${id}`); // Fetch job data from the API
-        if (!res.ok) {
-          throw new Error('Failed to fetch job data');
+        console.log("Job ID from URL:", id); // Debug log
+
+        const jobRef = doc(db, "jobs", id); // Reference the job document
+        const jobSnap = await getDoc(jobRef);
+
+        if (!jobSnap.exists()) {
+          console.error("Job not found in Firestore");
+          setJob(null); // Set job to null if not found
+          return;
         }
-        const data = await res.json();
-        setJob(data); // Set the job data
+
+        setJob({ id: jobSnap.id, ...jobSnap.data() }); // Set the job data
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching job:", error);
       } finally {
         setLoading(false); // Stop loading spinner
       }
     };
+
     fetchJob();
-  }, [id]); // Re-fetch if the job ID changes
+  }, [id]);
+
+  // Delete job from Firestore
+  const onDeleteClick = async (jobId) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this job?");
+    if (!confirmDelete) return;
+
+    try {
+      const jobRef = doc(db, "jobs", jobId);
+      await deleteDoc(jobRef); // Delete the job document
+      alert("Job deleted successfully!");
+      navigate("/jobs"); // Redirect to the jobs page
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      alert("Failed to delete job.");
+    }
+  };
 
   if (loading) {
     return <Spinner />;
   }
 
   if (!job) {
-    return <p className="text-center text-red-500">Job not found.</p>;
+    return (
+      <div className="text-center py-10">
+        <h1 className="text-2xl font-bold text-red-500">Job not found</h1>
+        <Link
+          to="/jobs"
+          className="text-indigo-500 hover:text-indigo-600 mt-4 inline-block"
+        >
+          Back to Job Listings
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -53,7 +79,7 @@ const Jobs = ({deleteJob}) => {
             to="/jobs"
             className="text-indigo-500 hover:text-indigo-600 flex items-center"
           >
-           <FaArrowLeft className='mr-2' /> Back to Job Listings
+            <FaArrowLeft className="mr-2" /> Back to Job Listings
           </Link>
         </div>
       </section>
@@ -84,26 +110,25 @@ const Jobs = ({deleteJob}) => {
 
             {/* Sidebar */}
             <aside>
-              {/* Company Info */}
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h3 className="text-xl font-bold mb-6">Company Info</h3>
-                <h2 className="text-2xl">{job.company?.name || 'N/A'}</h2>
-                <p className="my-2">{job.company?.description || 'No description available.'}</p>
+                <h2 className="text-2xl">{job.C_name || "N/A"}</h2>
+                <p className="my-2">{job.C_description || "No description available."}</p>
 
                 <hr className="my-4" />
 
                 <h3 className="text-xl">Contact Email:</h3>
                 <p className="my-2 bg-indigo-100 p-2 font-bold">
-                  {job.company?.contactEmail || 'N/A'}
+                  {job.C_contactEmail || "N/A"}
                 </p>
 
                 <h3 className="text-xl">Contact Phone:</h3>
                 <p className="my-2 bg-indigo-100 p-2 font-bold">
-                  {job.company?.contactPhone || 'N/A'}
+                  {job.C_contactPhone || "N/A"}
                 </p>
               </div>
 
-              {/* Manage */}
+              {/* Manage Job */}
               <div className="bg-white p-6 rounded-lg shadow-md mt-6">
                 <h3 className="text-xl font-bold mb-6">Manage Job</h3>
                 <Link
@@ -112,7 +137,8 @@ const Jobs = ({deleteJob}) => {
                 >
                   Edit Job
                 </Link>
-                <button onClick={() => onDeleteClick(job.id)}
+                <button
+                  onClick={() => onDeleteClick(job.id)}
                   className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
                 >
                   Delete Job
